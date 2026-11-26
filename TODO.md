@@ -83,3 +83,9 @@ The goal: a console-like experience on PC. The game starts straight into play, h
 | ID | Task | Where | Needs |
 |----|------|-------|-------|
 | UP-1 | Upstream VIctory has 265 commits this fork lacks (counted on 2026-11-25 with `git cherry`). Go through them and cherry-pick the useful ones: `git remote add victory https://github.com/Marvisak/VIctory.git`, `git fetch victory`, `git cherry-pick <hash>`, then `scripts/rename-from-upstream.ps1` and `cargo check --workspace --all-targets`. Candidates by title, none tried yet: `4ab20fc` (indirect budget, C-2), `534e1dd` (AVX2 check), `e9cb14a` (missing title DLLs message), `42961e8` (warns when GPU hang settings would freeze the PC), `a3acc87` (checks the required startup archive). Many of the GPU commits touch code victory-gta6 changed, so expect conflicts there. | whole tree | - |
+
+## PS3 platform experiment (separate from GTA VI compatibility)
+
+| ID | Task | Where | Needs |
+|----|------|-------|-------|
+| PS3-1 | Build and boot a minimal native PS3 homebrew ELF/SELF/PKG with a pinned PS3 toolchain. Keep it independent of the Windows/Rust workspace; do not claim GTA VI compatibility. Decide whether a separate repository is the right home after the proof of concept boots on real hardware. | separate PS3 proof of concept | PS3 HEN/CFW hardware |
