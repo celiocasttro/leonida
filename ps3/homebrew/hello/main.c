@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/process.h>
 #include <sysutil/sysutil.h>
 #include <io/pad.h>
 
@@ -10,6 +9,7 @@ static void on_system_event(u64 status, u64 param, void *userdata)
 {
     (void)param;
     (void)userdata;
+
     if (status == SYSUTIL_EXIT_GAME) {
         exit_requested = 1;
     }
@@ -17,26 +17,31 @@ static void on_system_event(u64 status, u64 param, void *userdata)
 
 int main(void)
 {
-    PadInfo pad_info;
-    PadData pad_data;
+    padInfo pad_info;
+    padData pad_data;
 
-    printf("\nLeonida PS3 Homebrew Proof of Concept\n");
-    printf("Native PPU executable started.\n");
-    printf("PSL1GHT / PS3DEV toolchain build.\n");
-    printf("Press the PS button and choose Quit Game to exit.\n");
+    puts("Leonida PS3 Homebrew Proof of Concept");
+    puts("Native Cell PPU executable started.");
+    puts("PSL1GHT / PS3DEV toolchain build.");
+    puts("Use the PS button > Quit Game to exit.");
     fflush(stdout);
 
-    sysUtilRegisterCallback(SYSUTIL_EVENT_SLOT0, on_system_event, NULL);
-    ioPadInit(7);
+    if (sysUtilRegisterCallback(SYSUTIL_EVENT_SLOT0, on_system_event, NULL) != SYSUTIL_OK) {
+        puts("Warning: could not register the system callback.");
+        fflush(stdout);
+    }
+
+    if (ioPadInit(7) != PAD_OK) {
+        puts("Warning: controller input initialization failed.");
+        fflush(stdout);
+    }
 
     while (!exit_requested) {
         sysUtilCheckCallback();
 
-        if (ioPadGetInfo(&pad_info) == 0 && pad_info.status[0]) {
-            if (ioPadGetData(0, &pad_data) == 0 &&
-                (pad_data.BTN_START || pad_data.BTN_CIRCLE)) {
-                /* Do not exit on face/start buttons: keep the test harmless. */
-            }
+        if (ioPadGetInfo(&pad_info) == PAD_OK && pad_info.status[0]) {
+            /* Poll the controller to verify that the native pad API is available. */
+            (void)ioPadGetData(0, &pad_data);
         }
 
         usleep(10000);
@@ -44,7 +49,7 @@ int main(void)
 
     ioPadEnd();
     sysUtilUnregisterCallback(SYSUTIL_EVENT_SLOT0);
-    printf("Leonida PS3 PoC closed cleanly.\n");
+    puts("Leonida PS3 PoC closed cleanly.");
     fflush(stdout);
     return 0;
 }
