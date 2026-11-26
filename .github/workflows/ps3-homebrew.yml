@@ -1,0 +1,86 @@
+name: PS3 homebrew proof of concept
+
+on:
+  push:
+    branches: [ps3-experimental]
+    paths:
+      - "ps3/**"
+      - ".github/workflows/ps3-homebrew.yml"
+  pull_request:
+    paths:
+      - "ps3/**"
+      - ".github/workflows/ps3-homebrew.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ps3-homebrew-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out Leonida
+        uses: actions/checkout@v4
+
+      - name: Install PS3DEV host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake bison flex gcc g++ libelf-dev make \
+            texinfo libncurses5-dev patch python-is-python3 python3-dev \
+            subversion wget zlib1g-dev libtool libtool-bin bzip2 \
+            libgmp3-dev pkg-config libssl-dev clang
+
+      - name: Build the official PS3DEV toolchain and PSL1GHT
+        env:
+          PS3DEV: /usr/local/ps3dev
+          PSL1GHT: /usr/local/ps3dev
+        run: |
+          git clone --depth 1 https://github.com/ps3dev/ps3dev.git /tmp/ps3dev
+          sudo mkdir -p "$PS3DEV"
+          sudo chown -R "$USER":"$USER" "$PS3DEV"
+          cd /tmp/ps3dev
+          ./build-all.sh
+
+      - name: Build native PPU ELF and SELF
+        env:
+          PS3DEV: /usr/local/ps3dev
+          PSL1GHT: /usr/local/ps3dev
+        run: |
+          export PATH="$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin:$PATH"
+          make -C ps3/homebrew/hello clean
+          make -C ps3/homebrew/hello
+          test -s ps3/homebrew/hello/leonida_ps3_poc.elf
+          test -s ps3/homebrew/hello/leonida_ps3_poc.self
+
+      - name: Package HEN homebrew PKG
+        env:
+          PS3DEV: /usr/local/ps3dev
+          PSL1GHT: /usr/local/ps3dev
+        run: |
+          export PATH="$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin:$PATH"
+          make -C ps3/homebrew/hello pkg
+          test -s ps3/homebrew/hello/leonida_ps3_poc.pkg
+
+      - name: Verify generated artifacts
+        run: |
+          file ps3/homebrew/hello/leonida_ps3_poc.elf
+          file ps3/homebrew/hello/leonida_ps3_poc.self
+          file ps3/homebrew/hello/leonida_ps3_poc.pkg
+          sha256sum ps3/homebrew/hello/leonida_ps3_poc.*
+
+      - name: Upload PS3 build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: leonida-ps3-homebrew-${{ github.sha }}
+          path: |
+            ps3/homebrew/hello/leonida_ps3_poc.elf
+            ps3/homebrew/hello/leonida_ps3_poc.self
+            ps3/homebrew/hello/leonida_ps3_poc.pkg
+          if-no-files-found: error
+          retention-days: 14
