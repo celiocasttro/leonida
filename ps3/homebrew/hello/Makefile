@@ -16,6 +16,7 @@ APPID := LNP300001
 CONTENTID := UP0001-$(APPID)_00-0000000000000000
 
 CFLAGS += -O2 -Wall -Wextra -std=gnu99
+CFLAGS += -I$(PS3DEV)/ppu/include
 LIBS += -lio -lsysutil
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
